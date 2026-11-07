@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type DraftDocument, type Fax, type Office, type Quote, XipFax } from 'xipfax';
+import { type DraftDocument, type Fax, type Office, type Quote, XipFax } from '@xiphub/xipfax-sdk';
 import { type QuickstartInput, quickstart, REAL_AND_CHARGED } from '../examples/quickstart.ts';
 import { readAnswer, readRequest } from './contract.js';
 

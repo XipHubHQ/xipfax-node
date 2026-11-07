@@ -9,7 +9,7 @@
  *   XIPFAX_TO='+1 202 555 0143' XIPFAX_PDF_URL=https://example.com/letter.pdf XIPFAX_API_KEY=… node examples/run-quickstart.ts
  */
 import { createInterface } from 'node:readline/promises';
-import { type ApiError, XipFax } from 'xipfax';
+import { type ApiError, XipFax } from '@xiphub/xipfax-sdk';
 import { quickstart } from './quickstart.ts';
 
 const apiKey = process.env.XIPFAX_API_KEY;

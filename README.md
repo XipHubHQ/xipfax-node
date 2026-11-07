@@ -5,8 +5,8 @@ number or a government office, and follow each fax until it's delivered. The SDK
 the API's own document, so its methods and types are the API's. It runs on Node.js 18 or later, and
 anywhere else with `fetch`.
 
-> **Not on npm yet.** XipFax publishes it with its first release. Until then you can build it from
-> this repository, as [the quickstart](#the-quickstart) does.
+> **Not on npm yet.** XipFax publishes it as `@xiphub/xipfax-sdk` with its first release. Until then
+> you can build it from this repository, as [the quickstart](#the-quickstart) does.
 
 ## Make an API key
 
@@ -18,7 +18,7 @@ Keep the key on your server. A key in a web page or an app is anyone's.
 ## Use it
 
 ```ts
-import { XipFax } from 'xipfax';
+import { XipFax } from '@xiphub/xipfax-sdk';
 
 const xipfax = new XipFax({ apiKey: process.env.XIPFAX_API_KEY! });
 

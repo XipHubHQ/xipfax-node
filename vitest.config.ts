@@ -5,7 +5,10 @@ export default defineConfig({
   resolve: {
     // The examples import the SDK by its name, as you would; their specs read it from the source.
     alias: [
-      { find: /^xipfax$/, replacement: fileURLToPath(new URL('./src/index.ts', import.meta.url)) },
+      {
+        find: /^@xiphub\/xipfax-sdk$/,
+        replacement: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
+      },
     ],
   },
   test: {

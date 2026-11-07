@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { XipFax } from 'xipfax';
+import type { XipFax } from '@xiphub/xipfax-sdk';
 
 /**
  * XipFax's quickstart through the SDK, the steps of

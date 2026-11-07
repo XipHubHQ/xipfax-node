@@ -1,5 +1,5 @@
 {
-  "name": "xipfax",
+  "name": "@xiphub/xipfax-sdk",
   "version": "0.1.0",
   "description": "XipFax's API for TypeScript and JavaScript, generated from its OpenAPI document.",
   "keywords": [
@@ -37,6 +37,9 @@
   ],
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "packageManager": "pnpm@10.23.0",
   "scripts": {
