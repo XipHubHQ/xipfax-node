@@ -1,0 +1,64 @@
+{
+  "name": "@xiphub/xipfax-sdk",
+  "version": "0.1.0",
+  "description": "XipFax's API for TypeScript and JavaScript, generated from its OpenAPI document.",
+  "keywords": [
+    "xipfax",
+    "fax",
+    "api",
+    "sdk"
+  ],
+  "homepage": "https://github.com/XipHubHQ/xipfax-node#readme",
+  "bugs": {
+    "email": "support@xipfax.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XipHubHQ/xipfax-node.git"
+  },
+  "author": {
+    "name": "XipFax",
+    "url": "https://xipfax.com"
+  },
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "packageManager": "pnpm@10.23.0",
+  "scripts": {
+    "generate": "openapi-ts && node scripts/api-version.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "format": "prettier --write src test examples scripts README.md package.json tsconfig.json tsconfig.build.json openapi-ts.config.ts vitest.config.ts",
+    "format:check": "prettier --check src test examples scripts README.md package.json tsconfig.json tsconfig.build.json openapi-ts.config.ts vitest.config.ts",
+    "gates": "scripts/gates.sh",
+    "prepack": "pnpm run build"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
+    "@types/node": "24.19.0",
+    "ajv": "8.20.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
