@@ -115,6 +115,10 @@ UUID, which you keep with the request. Sent again with the same key within 24 ho
 answered as it was the first time rather than done twice, so a retry after a timeout can't send a fax
 twice. The SDK makes up no key itself: one it made would be new on each try, and protect nothing.
 
+The answer to a request sent again keeps none of its signed links: `upload`, and a document's `url`,
+come back null. So an upload that `addDocument` gave, asked for again with its key, has no link to
+send the bytes to. Take that document out with `removeDocument`, and add it again with a new key.
+
 ## Versions
 
 Each request names the version of the API the SDK was generated from, `API_VERSION`, in its

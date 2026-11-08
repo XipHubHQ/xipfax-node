@@ -71,10 +71,7 @@ export async function quickstart(xipfax: XipFax, input: QuickstartInput): Promis
   });
   say(`Added ${added.document.name}${pagesOf(added.document.page_count)}.`);
 
-  // 5. Check the draft: its documents, in the order the fax sends them.
-  const { data: draft } = await xipfax.getDraft({ throwOnError: true });
-
-  // 6. Send it, a real fax, charged: said first, and sent only once you type send.
+  // 5. Send it, a real fax, charged: said first, and sent only once you type send.
   say(REAL_AND_CHARGED);
   const answer = await input.ask(`Type send to fax it to ${to}, or anything else to stop: `);
   if (answer.trim().toLowerCase() !== 'send') {
@@ -82,9 +79,11 @@ export async function quickstart(xipfax: XipFax, input: QuickstartInput): Promis
     say('Nothing was sent, and the document is out of your draft again.');
     return;
   }
+  // The send names the documents to send: the one this added, alone. A draft whose documents
+  // aren't these is refused, so that nothing you didn't name is sent.
   const { data: sent } = await xipfax.sendDraft({
     headers: { 'Idempotency-Key': randomUUID() },
-    body: { fax_number: to, document_ids: draft.documents.map((document) => document.id) },
+    body: { fax_number: to, document_ids: [added.document.id] },
     throwOnError: true,
   });
   if (sent.confirm_url) {
@@ -93,7 +92,7 @@ export async function quickstart(xipfax: XipFax, input: QuickstartInput): Promis
   }
   say(`Sent, paid by ${sent.paid_by}: fax ${sent.fax.id}.`);
 
-  // 7. Follow the fax until it's delivered or fails, then read its confirmation.
+  // 6. Follow the fax until it's delivered or fails, then read its confirmation.
   let fax = sent.fax;
   let shown = '';
   for (

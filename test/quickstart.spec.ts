@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { type DraftDocument, type Fax, type Office, type Quote, XipFax } from '@xiphub/xipfax-sdk';
+import {
+  type ApiError,
+  type DraftDocument,
+  type Fax,
+  type Office,
+  type Quote,
+  type SendDraft,
+  XipFax,
+} from '@xiphub/xipfax-sdk';
 import { type QuickstartInput, quickstart, REAL_AND_CHARGED } from '../examples/quickstart.ts';
 import { readAnswer, readRequest } from './contract.js';
 
@@ -71,13 +79,30 @@ interface Walk {
   answersRefused: string[];
 }
 
-/** The API as the quickstart finds it, its draft holding `draft` to begin with. */
-function standIn(draft: DraftDocument[] = []): { fetch: typeof fetch; walk: Walk } {
+/** The API's refusal of a send that names documents other than its draft's. */
+const draftChanged: ApiError = {
+  error: {
+    code: 'draft_changed',
+    message: 'Your fax changed since this page showed it. Look it over, then send it again.',
+    details: [],
+    request_id: 'req_1',
+    doc_url: null,
+  },
+};
+
+/**
+ * The API as the quickstart finds it, its draft holding `draft` to begin with, and `addedOnXipfax`
+ * too once the quickstart adds its own, as documents the client adds on xipfax.com meanwhile.
+ */
+function standIn(
+  draft: DraftDocument[] = [],
+  addedOnXipfax: DraftDocument[] = [],
+): { fetch: typeof fetch; walk: Walk } {
   const walk: Walk = { events: [], requests: [], answersRefused: [] };
   let documents = [...draft];
   let reads = 0;
 
-  function answer(route: string): [number, unknown] {
+  function answer(route: string, sent: SendDraft | undefined): [number, unknown] {
     switch (route) {
       case 'GET /quote':
         return [200, quote];
@@ -86,13 +111,20 @@ function standIn(draft: DraftDocument[] = []): { fetch: typeof fetch; walk: Walk
       case 'GET /draft':
         return [200, { id: 'fax_1', documents }];
       case 'POST /draft/documents':
-        documents = [...documents, letter];
+        documents = [...documents, letter, ...addedOnXipfax];
         return [201, { document: letter, upload: null }];
       case 'DELETE /draft/documents/doc_1':
         documents = documents.filter((document) => document.id !== 'doc_1');
         return [204, undefined];
-      case 'POST /draft/send':
+      case 'POST /draft/send': {
+        // As the API does, it sends a draft only where the send names its documents, in order.
+        const named = sent?.document_ids ?? [];
+        const held = documents.map((document) => document.id);
+        if (named.length !== held.length || named.some((id, at) => id !== held[at])) {
+          return [409, draftChanged];
+        }
         return [200, { fax: faxAt('sending', 'queued'), paid_by: 'plan', confirm_url: null }];
+      }
       case 'GET /faxes/fax_1':
         reads += 1;
         return [200, reads < 2 ? faxAt('sending', 'sending') : faxAt('delivered', null)];
@@ -108,7 +140,9 @@ function standIn(draft: DraftDocument[] = []): { fetch: typeof fetch; walk: Walk
     const route = `${request.method} ${new URL(request.url).pathname}`;
     walk.requests.push(request);
     walk.events.push(route);
-    const [status, body] = answer(route);
+    const sent: SendDraft | undefined =
+      route === 'POST /draft/send' ? await request.clone().json() : undefined;
+    const [status, body] = answer(route, sent);
     walk.answersRefused.push(...readAnswer(request, status, body));
     return body === undefined
       ? new Response(null, { status })
@@ -165,7 +199,6 @@ describe('the quickstart', () => {
       'GET /offices',
       'GET /draft',
       'POST /draft/documents',
-      'GET /draft',
       'POST /draft/send',
       'GET /faxes/fax_1',
       'GET /faxes/fax_1',
@@ -196,9 +229,27 @@ describe('the quickstart', () => {
       'GET /offices',
       'GET /draft',
       'POST /draft/documents',
-      'GET /draft',
       'DELETE /draft/documents/doc_1',
     ]);
+    await expectTheContract(walk);
+  });
+
+  it('names only the document it added, so a draft that gained another on xipfax.com is refused', async () => {
+    const { fetch, walk } = standIn([], [{ ...letter, id: 'doc_2', name: 'other.pdf' }]);
+
+    await expect(
+      quickstart(new XipFax({ apiKey: KEY, fetch }), inputFor(walk, 'send', TO, PDF)),
+    ).rejects.toMatchObject({ error: { code: 'draft_changed' } });
+
+    expect(requestsOf(walk)).toEqual([
+      'GET /quote',
+      'GET /offices',
+      'GET /draft',
+      'POST /draft/documents',
+      'POST /draft/send',
+    ]);
+    const send = walk.requests.find((request) => request.url.endsWith('/draft/send'))!;
+    expect(await send.clone().json()).toEqual({ fax_number: TO, document_ids: ['doc_1'] });
     await expectTheContract(walk);
   });
 
