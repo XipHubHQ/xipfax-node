@@ -4,6 +4,8 @@ export type ClientOptions = {
     baseUrl: 'https://api.xipfax.com' | (string & {});
 };
 
+export type Webhooks = FaxDeliveredWebhookRequest | FaxFailedWebhookRequest | FaxReceivedWebhookRequest;
+
 export type ApiError = {
     error: {
         /**
@@ -405,6 +407,54 @@ export type OfficePage = {
     next_cursor: string | null;
 };
 
+/**
+ * A webhook endpoint of your account, just registered: every event goes to it, signed with its own secret.
+ */
+export type WebhookEndpoint = {
+    /**
+     * The endpoint, as `DELETE /webhook-endpoints/{endpoint_id}` names it.
+     */
+    id: string;
+    /**
+     * Where XipFax posts each event.
+     */
+    url: string;
+    /**
+     * When it was registered.
+     */
+    created_at: string;
+    /**
+     * Its signing secret, `whsec_` and the base64 of its key, which signs every event posted to it: keep it now, as no other answer shows it. Null in an answer given again for a repeated `Idempotency-Key`.
+     */
+    secret: string | null;
+};
+
+/**
+ * What XipFax tells your endpoint of a fax: one delivered, failed for good, or received.
+ */
+export type FaxEvent = {
+    /**
+     * The event, the same on every delivery of it, as `webhook-id` names it: take each once.
+     */
+    id: string;
+    /**
+     * What happened: `fax.delivered` once a fax you sent is delivered, `fax.failed` once one fails for good, and `fax.received` once a fax sent to your number arrives. An open set: ignore a type you don’t handle.
+     */
+    type: 'fax.delivered' | 'fax.failed' | 'fax.received';
+    /**
+     * The version `data` is in.
+     */
+    api_version: '2026-11-03';
+    /**
+     * When it happened.
+     */
+    created_at: string;
+    /**
+     * The fax, as the event found it and as `GET /faxes` gives it.
+     */
+    data: Fax;
+};
+
 export type NewDocument = {
     /**
      * Its name, such as its file’s: 255 characters at most.
@@ -436,12 +486,22 @@ export type SendDraft = {
 };
 
 /**
+ * A webhook endpoint to register: the URL of your own server that takes the events.
+ */
+export type NewWebhookEndpoint = {
+    /**
+     * Where XipFax posts each event: https on its usual port, at an address on the internet, 2,048 characters at most.
+     */
+    url: string;
+};
+
+/**
  * A released version of the API: the day its contract was fixed.
  */
 export type XipVersion = '2026-11-03';
 
 /**
- * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links null; one for another request is refused.
+ * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
  */
 export type IdempotencyKey = string;
 
@@ -456,6 +516,11 @@ export type DocumentId = string;
 export type FaxId = string;
 
 /**
+ * The webhook endpoint, as the answer that registered it names it.
+ */
+export type EndpointId = string;
+
+/**
  * How many items the page holds: 20 unless you ask for another number, and 100 at most.
  */
 export type Limit = number;
@@ -464,6 +529,21 @@ export type Limit = number;
  * The `next_cursor` of the page before, for the page after it; none for the first page.
  */
 export type StartingAfter = string;
+
+/**
+ * The event’s id, the same on every delivery of it: take each once.
+ */
+export type WebhookId = string;
+
+/**
+ * When XipFax made this delivery, in Unix seconds: refuse one far from your own clock.
+ */
+export type WebhookTimestamp = string;
+
+/**
+ * `v1,` and the base64 HMAC-SHA256 of `{webhook-id}.{webhook-timestamp}.{body}`, the body exactly as it came, under the key your endpoint’s secret holds: the base64 after `whsec_`.
+ */
+export type WebhookSignature = string;
 
 export type GetQuoteData = {
     body?: never;
@@ -556,7 +636,7 @@ export type AddDocumentData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
          */
         'Idempotency-Key': string;
     };
@@ -619,7 +699,7 @@ export type CompleteDocumentData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
          */
         'Idempotency-Key': string;
     };
@@ -731,7 +811,7 @@ export type SendDraftData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
          */
         'Idempotency-Key': string;
     };
@@ -1036,3 +1116,141 @@ export type ListOfficesResponses = {
 };
 
 export type ListOfficesResponse = ListOfficesResponses[keyof ListOfficesResponses];
+
+export type RegisterWebhookEndpointData = {
+    body: NewWebhookEndpoint;
+    headers: {
+        /**
+         * A released version of the API: the day its contract was fixed.
+         */
+        'Xip-Version'?: '2026-11-03';
+        /**
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/webhook-endpoints';
+};
+
+export type RegisterWebhookEndpointErrors = {
+    /**
+     * Refused: `parameter_missing`, `parameter_invalid`, `parameter_unknown`, `idempotency_key_missing`, `version_invalid`.
+     */
+    400: ApiError;
+    /**
+     * Refused: `authentication_required`, `authentication_failed`.
+     */
+    401: ApiError;
+    /**
+     * Refused: `insufficient_scope`.
+     */
+    403: ApiError;
+    /**
+     * Refused: `idempotency_key_in_use`.
+     */
+    409: ApiError;
+    /**
+     * Refused: `content_too_large`.
+     */
+    413: ApiError;
+    /**
+     * Refused: `webhook_endpoints_full`, `webhook_url_not_public`, `webhook_url_unresolved`, `idempotency_key_reused`.
+     */
+    422: ApiError;
+    /**
+     * Refused: `rate_limit_exceeded`.
+     */
+    429: ApiError;
+    /**
+     * Refused: `service_unavailable`.
+     */
+    503: ApiError;
+};
+
+export type RegisterWebhookEndpointError = RegisterWebhookEndpointErrors[keyof RegisterWebhookEndpointErrors];
+
+export type RegisterWebhookEndpointResponses = {
+    /**
+     * The endpoint registered, and its signing secret.
+     */
+    201: WebhookEndpoint;
+};
+
+export type RegisterWebhookEndpointResponse = RegisterWebhookEndpointResponses[keyof RegisterWebhookEndpointResponses];
+
+export type RemoveWebhookEndpointData = {
+    body?: never;
+    headers?: {
+        /**
+         * A released version of the API: the day its contract was fixed.
+         */
+        'Xip-Version'?: '2026-11-03';
+    };
+    path: {
+        /**
+         * The webhook endpoint, as the answer that registered it names it.
+         */
+        endpoint_id: string;
+    };
+    query?: never;
+    url: '/webhook-endpoints/{endpoint_id}';
+};
+
+export type RemoveWebhookEndpointErrors = {
+    /**
+     * Refused: `parameter_unknown`, `version_invalid`.
+     */
+    400: ApiError;
+    /**
+     * Refused: `authentication_required`, `authentication_failed`.
+     */
+    401: ApiError;
+    /**
+     * Refused: `insufficient_scope`.
+     */
+    403: ApiError;
+    /**
+     * Refused: `resource_not_found`.
+     */
+    404: ApiError;
+};
+
+export type RemoveWebhookEndpointError = RemoveWebhookEndpointErrors[keyof RemoveWebhookEndpointErrors];
+
+export type RemoveWebhookEndpointResponses = {
+    /**
+     * The endpoint is removed.
+     */
+    204: void;
+};
+
+export type RemoveWebhookEndpointResponse = RemoveWebhookEndpointResponses[keyof RemoveWebhookEndpointResponses];
+
+export type FaxDeliveredWebhookPayload = FaxEvent;
+
+export type FaxDeliveredWebhookRequest = {
+    body: FaxDeliveredWebhookPayload;
+    key: 'fax.delivered';
+    path?: never;
+    query?: never;
+};
+
+export type FaxFailedWebhookPayload = FaxEvent;
+
+export type FaxFailedWebhookRequest = {
+    body: FaxFailedWebhookPayload;
+    key: 'fax.failed';
+    path?: never;
+    query?: never;
+};
+
+export type FaxReceivedWebhookPayload = FaxEvent;
+
+export type FaxReceivedWebhookRequest = {
+    body: FaxReceivedWebhookPayload;
+    key: 'fax.received';
+    path?: never;
+    query?: never;
+};

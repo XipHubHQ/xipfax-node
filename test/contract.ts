@@ -4,7 +4,8 @@ import { API_VERSION } from '../src/index.js';
 
 /**
  * The API's document, as this repository holds it and generates the SDK from, and a reading of a
- * request, or an answer, against it: the operation it is, and what in it the document refuses.
+ * request, an answer or an event's body against it: the operation it is, and what in it the
+ * document refuses.
  */
 
 interface Parameter {
@@ -26,6 +27,7 @@ interface ApiDocument {
   info: { version: string };
   servers: Array<{ url: string }>;
   paths: Record<string, Record<string, unknown>>;
+  webhooks?: Record<string, Record<string, unknown>>;
 }
 
 export const apiDocument = JSON.parse(
@@ -220,4 +222,11 @@ export function readAnswer(request: Request, status: number, body: unknown): str
   const content = (answer.value as { content?: Record<string, unknown> }).content;
   if (!content) return body === undefined ? [] : [`${status} carries no body`];
   return refused(pointer([...answer.parts, 'content', 'application/json', 'schema']), body);
+}
+
+/** An event's body read against the document: what in it the schema it is posted by refuses. */
+export function readEvent(type: string, body: unknown): string[] {
+  if (!apiDocument.webhooks?.[type]?.['post']) return [`the document posts no ${type}`];
+  const posted = at(['webhooks', type, 'post', 'requestBody']);
+  return refused(pointer([...posted.parts, 'content', 'application/json', 'schema']), body);
 }

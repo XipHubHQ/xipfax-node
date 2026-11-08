@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { API_VERSION, XipFax } from '../src/index.js';
-import { apiDocument, operations, readRequest, versionRefused } from './contract.js';
+import { API_VERSION, type Fax, type FaxEvent, XipFax } from '../src/index.js';
+import { apiDocument, operations, readEvent, readRequest, versionRefused } from './contract.js';
 
 /**
  * Each of the SDK's methods sends the request the API's document asks for: its method and path on
  * the document's server, the key as a bearer token, the version, and every parameter and body as
  * the document's schemas take them. The calls are typed by the SDK, so they compile only as the
- * generated types allow, and each request they send is read against the document itself.
+ * generated types allow, and each request they send is read against the document itself. Each
+ * event the document posts is typed by the SDK as `FaxEvent`, which the document takes as it posts
+ * it.
  */
 
 /** One call of each operation, by its operation id, with arguments the document takes. */
@@ -38,6 +40,59 @@ const calls: Record<string, (xipfax: XipFax) => Promise<unknown>> = {
     xipfax.listOffices({
       query: { search: 'Form 2848', place: 'OH', limit: 5, starting_after: 'office_0' },
     }),
+  registerWebhookEndpoint: (xipfax) =>
+    xipfax.registerWebhookEndpoint({
+      headers: { 'Idempotency-Key': 'register-endpoint-1' },
+      body: { url: 'https://example.com/xipfax/events' },
+    }),
+  removeWebhookEndpoint: (xipfax) =>
+    xipfax.removeWebhookEndpoint({ path: { endpoint_id: 'endpoint_1' } }),
+};
+
+/** A fax you sent, as its event finds it once it has ended. */
+function sentFax(status: 'delivered' | 'failed', failure: Fax['failure']): Fax {
+  return {
+    id: 'fax_1',
+    direction: 'sent',
+    status,
+    step: null,
+    office_id: null,
+    to_number: '+12025550143',
+    from_number: '+12025550100',
+    pages: 2,
+    price: status === 'delivered' ? { amount_minor: 100, currency: 'USD' } : null,
+    sent_at: '2026-11-07T02:00:00Z',
+    finished_at: '2026-11-07T02:03:00Z',
+    retry_at: null,
+    failure,
+    time_zone: 'America/New_York',
+    sender_name: null,
+    cover_confidential: false,
+  };
+}
+
+/** The fax each event tells of, by the event's type: one for every type `FaxEvent` names. */
+const eventFaxes: Record<FaxEvent['type'], Fax> = {
+  'fax.delivered': sentFax('delivered', null),
+  'fax.failed': sentFax('failed', 'busy'),
+  'fax.received': {
+    id: 'fax_2',
+    direction: 'received',
+    status: 'received',
+    step: null,
+    office_id: null,
+    to_number: '+12025550100',
+    from_number: '+12025550111',
+    pages: 3,
+    price: null,
+    sent_at: '2026-11-07T02:10:00Z',
+    finished_at: null,
+    retry_at: null,
+    failure: null,
+    time_zone: null,
+    sender_name: null,
+    cover_confidential: false,
+  },
 };
 
 /** A fetch that answers every request with `status`, keeping each request it was given. */
@@ -86,4 +141,18 @@ describe("the SDK against the API's document", () => {
       });
     },
   );
+
+  it('types each event the document posts as FaxEvent, which the document takes', () => {
+    expect(Object.keys(apiDocument.webhooks ?? {}).sort()).toEqual(Object.keys(eventFaxes).sort());
+    for (const [type, data] of Object.entries(eventFaxes) as Array<[FaxEvent['type'], Fax]>) {
+      const event: FaxEvent = {
+        id: 'event_1',
+        type,
+        api_version: API_VERSION,
+        created_at: '2026-11-07T02:03:00Z',
+        data,
+      };
+      expect(readEvent(type, event), type).toEqual([]);
+    }
+  });
 });
