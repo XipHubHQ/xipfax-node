@@ -152,7 +152,7 @@ document over `openapi.json`, run `pnpm generate`, and commit what changes.
 
 ## Help
 
-Write to [support@xipfax.com](mailto:support@xipfax.com).
+Write to [help@xipfax.com](mailto:help@xipfax.com).
 
 ## License
 
