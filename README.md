@@ -133,7 +133,7 @@ registered yet, so the SDK leaves them out until one can.
 
 ## Help
 
-Write to [support@xipfax.com](mailto:support@xipfax.com).
+Write to [help@xipfax.com](mailto:help@xipfax.com).
 
 ## License
 
