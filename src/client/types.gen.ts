@@ -13,7 +13,7 @@ export type ApiError = {
          */
         code: string;
         /**
-         * XipFax's sentence, for a person; never branch on it.
+         * XipFax’s sentence, for a person; never branch on it.
          */
         message: string;
         /**
@@ -21,7 +21,7 @@ export type ApiError = {
          */
         details: Array<{
             /**
-             * The member it is about, as a dotted path from the body's root; `query.<name>` for a query parameter and `header.<name>` for a header.
+             * The member it is about, as a dotted path from the body’s root; `query.<name>` for a query parameter and `header.<name>` for a header.
              */
             path: string;
             /**
@@ -34,7 +34,7 @@ export type ApiError = {
             message: string;
         }>;
         /**
-         * The request, as its answer's `X-Request-Id` names it.
+         * The request, as its answer’s `X-Request-Id` names it.
          */
         request_id: string;
         /**
@@ -127,7 +127,7 @@ export type DraftDocument = {
 export type DocumentAdded = {
     document: DraftDocument;
     /**
-     * Where to send its bytes: a PUT to `url` with these `headers`, within a few minutes, as many bytes as `size_bytes` says; then complete it. Null where XipFax fetched it from its link, and in an answer given again for a repeated `Idempotency-Key`.
+     * Where to send its bytes: a PUT to `url` with these `headers`, within a few minutes, as many bytes as `size_bytes` says; then complete it. Null where XipFax fetched it from its link. In an answer given again for a repeated `Idempotency-Key`, a fresh link while the document still uploads, and null once it is ready or removed.
      */
     upload: {
         url: string;
@@ -180,7 +180,7 @@ export type Fax = {
      */
     to_number: string | null;
     /**
-     * For a fax you sent, your XipFax number it went from; for a fax received, the caller’s number in E.164, null where the caller’s line gave none.
+     * For a fax you sent, the number it went from: your XipFax number, or XipFax’s where you have none; for your draft, null; for a fax received, the caller’s number in E.164, null where the caller’s line gave none.
      */
     from_number: string | null;
     /**
@@ -501,7 +501,7 @@ export type NewWebhookEndpoint = {
 export type XipVersion = '2026-11-03';
 
 /**
- * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
+ * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null, though a document added by its size and still uploading gets a fresh link to upload it to; one for another request is refused.
  */
 export type IdempotencyKey = string;
 
@@ -636,7 +636,7 @@ export type AddDocumentData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null, though a document added by its size and still uploading gets a fresh link to upload it to; one for another request is refused.
          */
         'Idempotency-Key': string;
     };
@@ -671,9 +671,17 @@ export type AddDocumentErrors = {
      */
     422: ApiError;
     /**
+     * Refused: `rate_limit_exceeded`.
+     */
+    429: ApiError;
+    /**
      * Refused: `upstream_error`.
      */
     502: ApiError;
+    /**
+     * Refused: `service_unavailable`.
+     */
+    503: ApiError;
     /**
      * Refused: `upstream_timeout`.
      */
@@ -699,7 +707,7 @@ export type CompleteDocumentData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null, though a document added by its size and still uploading gets a fresh link to upload it to; one for another request is refused.
          */
         'Idempotency-Key': string;
     };
@@ -811,7 +819,7 @@ export type SendDraftData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null, though a document added by its size and still uploading gets a fresh link to upload it to; one for another request is refused.
          */
         'Idempotency-Key': string;
     };
@@ -1125,7 +1133,7 @@ export type RegisterWebhookEndpointData = {
          */
         'Xip-Version'?: '2026-11-03';
         /**
-         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null; one for another request is refused.
+         * A key of your own for the request, such as a UUID: 1 to 255 printable ASCII characters. For 24 hours, a request that names it again is answered as the first was, rather than run again, its signed links and an endpoint’s secret null, though a document added by its size and still uploading gets a fresh link to upload it to; one for another request is refused.
          */
         'Idempotency-Key': string;
     };

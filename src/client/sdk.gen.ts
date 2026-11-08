@@ -102,7 +102,7 @@ export class XipFaxApi extends HeyApiClient {
     /**
      * Add a document
      *
-     * Adds a PDF after the draft’s last document. Give `size_bytes` to upload it: the answer gives a link to send its bytes to, and the document is `uploading` until you complete it. Or give `url`, for XipFax to fetch it: the answer gives it `ready`, its pages counted. A PDF XipFax can’t read, one locked with a password, and one that takes the fax past 250 pages, its cover page included, are refused.
+     * Adds a PDF after the draft’s last document. Give `size_bytes` to upload it: the answer gives a link to send its bytes to, and the document is `uploading` until you complete it. Or give `url`, for XipFax to fetch it: the answer gives it `ready`, its pages counted. A PDF XipFax can’t read, one locked with a password, and one that takes the fax past 250 pages, its cover page included, are refused. XipFax fetches 10 links a minute for your account at most, and 1,000 a day, whichever key or app gives them: past either, a `url` is refused `rate_limit_exceeded`, nothing fetched, and `Retry-After` says in seconds when to try again. A document added by its `size_bytes` counts toward neither.
      */
     public addDocument<ThrowOnError extends boolean = false>(options: Options<AddDocumentData, ThrowOnError>): RequestResult<AddDocumentResponses, AddDocumentErrors, ThrowOnError> {
         return (options.client ?? this.client).post<AddDocumentResponses, AddDocumentErrors, ThrowOnError>({
