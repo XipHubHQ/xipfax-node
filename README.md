@@ -67,19 +67,21 @@ follows the fax until it's delivered, and gives the link to its confirmation.
 
 ## Methods
 
-| Method             | Request                                        | What it does                                                               |
-| ------------------ | ---------------------------------------------- | -------------------------------------------------------------------------- |
-| `getQuote`         | `GET /quote`                                   | The price of a fax of so many pages, sent without a plan.                  |
-| `getDraft`         | `GET /draft`                                   | Your draft, the fax you prepare, its documents in the order it sends them. |
-| `addDocument`      | `POST /draft/documents`                        | Adds a PDF to the draft, by a link XipFax fetches or by an upload.         |
-| `completeDocument` | `POST /draft/documents/{document_id}/complete` | Reads an uploaded PDF back, its pages counted.                             |
-| `removeDocument`   | `DELETE /draft/documents/{document_id}`        | Takes a document out of the draft.                                         |
-| `sendDraft`        | `POST /draft/send`                             | Sends the draft to a number or an office.                                  |
-| `listFaxes`        | `GET /faxes`                                   | The faxes you sent and received, newest first, a page at a time.           |
-| `getFax`           | `GET /faxes/{fax_id}`                          | A fax, where it stands now.                                                |
-| `getConfirmation`  | `GET /faxes/{fax_id}/confirmation`             | A delivered fax's confirmation, by a link that reads it for a few minutes. |
-| `getPlan`          | `GET /plan`                                    | Your plan, or none.                                                        |
-| `listOffices`      | `GET /offices`                                 | The government offices XipFax gives the fax numbers of.                    |
+| Method                    | Request                                        | What it does                                                                         |
+| ------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `getQuote`                | `GET /quote`                                   | The price of a fax of so many pages, sent without a plan.                            |
+| `getDraft`                | `GET /draft`                                   | Your draft, the fax you prepare, its documents in the order it sends them.           |
+| `addDocument`             | `POST /draft/documents`                        | Adds a PDF to the draft, by a link XipFax fetches or by an upload.                   |
+| `completeDocument`        | `POST /draft/documents/{document_id}/complete` | Reads an uploaded PDF back, its pages counted.                                       |
+| `removeDocument`          | `DELETE /draft/documents/{document_id}`        | Takes a document out of the draft.                                                   |
+| `sendDraft`               | `POST /draft/send`                             | Sends the draft to a number or an office.                                            |
+| `listFaxes`               | `GET /faxes`                                   | The faxes you sent and received, newest first, a page at a time.                     |
+| `getFax`                  | `GET /faxes/{fax_id}`                          | A fax, where it stands now.                                                          |
+| `getConfirmation`         | `GET /faxes/{fax_id}/confirmation`             | A delivered fax's confirmation, by a link that reads it for a few minutes.           |
+| `getPlan`                 | `GET /plan`                                    | Your plan, or none.                                                                  |
+| `listOffices`             | `GET /offices`                                 | The government offices XipFax gives the fax numbers of.                              |
+| `registerWebhookEndpoint` | `POST /webhook-endpoints`                      | Registers an endpoint of your server for every event, its signing secret shown once. |
+| `removeWebhookEndpoint`   | `DELETE /webhook-endpoints/{endpoint_id}`      | Takes an endpoint away: no event goes to it from then on.                            |
 
 ### Upload a PDF from your disk
 
@@ -110,14 +112,30 @@ await xipfax.completeDocument({
 
 ## Retries and `Idempotency-Key`
 
-`addDocument`, `completeDocument` and `sendDraft` take an `Idempotency-Key` of your own, such as a
-UUID, which you keep with the request. Sent again with the same key within 24 hours, the request is
-answered as it was the first time rather than done twice, so a retry after a timeout can't send a fax
-twice. The SDK makes up no key itself: one it made would be new on each try, and protect nothing.
+`addDocument`, `completeDocument`, `sendDraft` and `registerWebhookEndpoint` take an
+`Idempotency-Key` of your own, such as a UUID, which you keep with the request. Sent again with the
+same key within 24 hours, the request is answered as it was the first time rather than done twice,
+so a retry after a timeout can't send a fax twice. The SDK makes up no key itself: one it made would
+be new on each try, and protect nothing.
 
-The answer to a request sent again keeps none of its signed links: `upload`, and a document's `url`,
-come back null. So an upload that `addDocument` gave, asked for again with its key, has no link to
-send the bytes to. Take that document out with `removeDocument`, and add it again with a new key.
+The answer to a request sent again keeps none of its signed links, nor an endpoint's secret:
+`upload`, a document's `url` and an endpoint's `secret` come back null. So an upload that
+`addDocument` gave, asked for again with its key, has no link to send the bytes to. Take that
+document out with `removeDocument`, and add it again with a new key. An endpoint whose first answer
+you lost has no secret to check its deliveries by: remove it with `removeWebhookEndpoint`, and
+register it again with a new key.
+
+## Webhooks
+
+`registerWebhookEndpoint` registers an endpoint of your server, which every event goes to from then
+on: when a fax you sent is delivered or fails for good, and when a fax sent to your number arrives.
+Its answer shows the endpoint's signing secret once, so keep it then. `removeWebhookEndpoint` takes
+an endpoint away, as revoking the key that registered it does. Both take an API key, not an app's
+token.
+
+Check each delivery's `webhook-signature` with that secret, against its body exactly as it came,
+before you trust it. [XipFax's webhooks guide](https://developer.xipfax.com/docs/guides/webhooks/)
+shows how in Node, with nothing to install. Its body is then a `FaxEvent`.
 
 ## Versions
 
@@ -131,9 +149,6 @@ it, and `pnpm generate` makes the SDK from it with
 [`@hey-api/openapi-ts`](https://heyapi.dev): its types, its client and one class whose methods are
 the document's operations. Nothing in `src/client` is edited by hand. To update the SDK, copy the new
 document over `openapi.json`, run `pnpm generate`, and commit what changes.
-
-The document also describes the events XipFax will send to an endpoint of yours. No endpoint can be
-registered yet, so the SDK leaves them out until one can.
 
 ## Help
 

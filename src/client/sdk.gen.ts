@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AddDocumentData, AddDocumentErrors, AddDocumentResponses, CompleteDocumentData, CompleteDocumentErrors, CompleteDocumentResponses, GetConfirmationData, GetConfirmationErrors, GetConfirmationResponses, GetDraftData, GetDraftErrors, GetDraftResponses, GetFaxData, GetFaxErrors, GetFaxResponses, GetPlanData, GetPlanErrors, GetPlanResponses, GetQuoteData, GetQuoteErrors, GetQuoteResponses, ListFaxesData, ListFaxesErrors, ListFaxesResponses, ListOfficesData, ListOfficesErrors, ListOfficesResponses, RemoveDocumentData, RemoveDocumentErrors, RemoveDocumentResponses, SendDraftData, SendDraftErrors, SendDraftResponses } from './types.gen.js';
+import type { AddDocumentData, AddDocumentErrors, AddDocumentResponses, CompleteDocumentData, CompleteDocumentErrors, CompleteDocumentResponses, GetConfirmationData, GetConfirmationErrors, GetConfirmationResponses, GetDraftData, GetDraftErrors, GetDraftResponses, GetFaxData, GetFaxErrors, GetFaxResponses, GetPlanData, GetPlanErrors, GetPlanResponses, GetQuoteData, GetQuoteErrors, GetQuoteResponses, ListFaxesData, ListFaxesErrors, ListFaxesResponses, ListOfficesData, ListOfficesErrors, ListOfficesResponses, RegisterWebhookEndpointData, RegisterWebhookEndpointErrors, RegisterWebhookEndpointResponses, RemoveDocumentData, RemoveDocumentErrors, RemoveDocumentResponses, RemoveWebhookEndpointData, RemoveWebhookEndpointErrors, RemoveWebhookEndpointResponses, SendDraftData, SendDraftErrors, SendDraftResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -292,6 +292,44 @@ export class XipFaxApi extends HeyApiClient {
                     type: 'http'
                 }],
             url: '/offices',
+            ...options
+        });
+    }
+    
+    /**
+     * Register a webhook endpoint
+     *
+     * Registers an endpoint of your own server, which every event XipFax posts goes to from then on, as `webhooks` describes them, each signed with the endpoint’s own secret: the answer shows the secret, once, so keep it then. XipFax checks that the URL leads to an address on the internet, now and before each delivery. Your account keeps 16 endpoints at most, and registers 10 in an hour at most. An API key alone registers one, and revoking the key removes those it registered; an app’s token is refused `insufficient_scope`.
+     */
+    public registerWebhookEndpoint<ThrowOnError extends boolean = false>(options: Options<RegisterWebhookEndpointData, ThrowOnError>): RequestResult<RegisterWebhookEndpointResponses, RegisterWebhookEndpointErrors, ThrowOnError> {
+        return (options.client ?? this.client).post<RegisterWebhookEndpointResponses, RegisterWebhookEndpointErrors, ThrowOnError>({
+            security: [{
+                    key: 'apiKey',
+                    scheme: 'bearer',
+                    type: 'http'
+                }],
+            url: '/webhook-endpoints',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+    }
+    
+    /**
+     * Remove a webhook endpoint
+     *
+     * Removes an endpoint of your account, whichever key registered it: no event goes to it from then on, a delivery still to be tried again among them. An API key alone removes one; an app’s token is refused `insufficient_scope`.
+     */
+    public removeWebhookEndpoint<ThrowOnError extends boolean = false>(options: Options<RemoveWebhookEndpointData, ThrowOnError>): RequestResult<RemoveWebhookEndpointResponses, RemoveWebhookEndpointErrors, ThrowOnError> {
+        return (options.client ?? this.client).delete<RemoveWebhookEndpointResponses, RemoveWebhookEndpointErrors, ThrowOnError>({
+            security: [{
+                    key: 'apiKey',
+                    scheme: 'bearer',
+                    type: 'http'
+                }],
+            url: '/webhook-endpoints/{endpoint_id}',
             ...options
         });
     }
