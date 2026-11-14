@@ -153,10 +153,6 @@ it, and `pnpm generate` makes the SDK from it with
 the document's operations. Nothing in `src/client` is edited by hand. To update the SDK, copy the new
 document over `openapi.json`, run `pnpm generate`, and commit what changes.
 
-## Help
-
-Write to [help@xipfax.com](mailto:help@xipfax.com).
-
 ## License
 
 [MIT](LICENSE). The client that `pnpm generate` copies in from `@hey-api/openapi-ts` keeps its own
