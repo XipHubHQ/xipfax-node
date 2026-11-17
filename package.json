@@ -9,9 +9,6 @@
     "sdk"
   ],
   "homepage": "https://github.com/XipHubHQ/xipfax-node#readme",
-  "bugs": {
-    "email": "help@xipfax.com"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/XipHubHQ/xipfax-node.git"
