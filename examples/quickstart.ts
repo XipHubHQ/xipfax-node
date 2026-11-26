@@ -29,7 +29,7 @@ const READS = 30;
 
 /** The words the step that sends says first, as the docs' quickstart says them. */
 export const REAL_AND_CHARGED =
-  'This step sends a real fax, and it’s charged. It goes to the number you name, so name one of your own. Its pages count on your plan, or where you have no plan its price is held on the card you saved, and taken once it’s delivered. A fax that fails costs nothing.';
+  'This step sends a real fax, and it’s charged. It goes to the number you name, so name one of your own. Its pages count on your plan where it covers the number, or where you have no plan its price is held on the card you saved, and taken once it’s delivered. A fax that fails costs nothing.';
 
 /**
  * The quickstart's steps. Each call names `throwOnError`, so the API's refusal stops it, thrown as
@@ -40,7 +40,9 @@ export async function quickstart(xipfax: XipFax, input: QuickstartInput): Promis
 
   // 1. What a fax costs. This costs nothing, and it shows your key works.
   const { data: quote } = await xipfax.getQuote({ query: { pages: 1 }, throwOnError: true });
-  say(`A one-page fax costs ${quote.price_shown} without a plan: ${quote.terms}`);
+  say(
+    `A one-page fax to a number in the US, its territories or Canada costs ${quote.price_shown} without a plan: ${quote.terms}`,
+  );
 
   // 2. Where a form goes: the offices that take Form 2848 from Ohio, and their numbers. Also free.
   const { data: offices } = await xipfax.listOffices({

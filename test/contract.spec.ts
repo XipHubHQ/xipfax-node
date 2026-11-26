@@ -14,6 +14,8 @@ import { apiDocument, operations, readEvent, readRequest, versionRefused } from 
 /** One call of each operation, by its operation id, with arguments the document takes. */
 const calls: Record<string, (xipfax: XipFax) => Promise<unknown>> = {
   getQuote: (xipfax) => xipfax.getQuote({ query: { pages: 3 } }),
+  quoteNumber: (xipfax) =>
+    xipfax.quoteNumber({ body: { pages: 3, to_number: '+44 20 7946 0958' } }),
   getDraft: (xipfax) => xipfax.getDraft(),
   addDocument: (xipfax) =>
     xipfax.addDocument({
