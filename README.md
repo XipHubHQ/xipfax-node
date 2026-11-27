@@ -5,8 +5,11 @@ number or a government office, and follow each fax until it's delivered. The SDK
 the API's own document, so its methods and types are the API's. It runs on Node.js 18 or later, and
 anywhere else with `fetch`.
 
-> **Not on npm yet.** XipFax publishes it as `@xiphub/xipfax-sdk` with its first release. Until then
-> you can build it from this repository, as [the quickstart](#the-quickstart) does.
+## Install
+
+```sh
+npm install @xiphub/xipfax-sdk
+```
 
 ## Make an API key
 
@@ -42,7 +45,7 @@ const { data: plan } = await xipfax.getPlan({ throwOnError: true });
 
 [`examples/quickstart.ts`](examples/quickstart.ts) takes the steps of
 [XipFax's quickstart](https://developer.xipfax.com/docs/guides/quickstart/) through the SDK. Run it
-on Node.js 22.18 or later, which runs TypeScript as it is:
+from a clone of this repository, on Node.js 22.18 or later, which runs TypeScript as it is:
 
 ```sh
 pnpm install
