@@ -54,7 +54,7 @@ export type Quote = {
      */
     pages: number;
     /**
-     * What the fax costs without a plan. A fax sent on the plan counts its pages there instead.
+     * What the fax costs without a plan, and on the plan where it doesn’t cover the number.
      */
     price: {
         /**
@@ -63,6 +63,10 @@ export type Quote = {
         amount_minor: number;
         currency: 'USD';
     };
+    /**
+     * Whether the plan covers a fax to the number: sent on the plan, its pages count there instead of the price.
+     */
+    plan_covers: boolean;
     /**
      * The price as XipFax prints it: $4.99.
      */
@@ -176,7 +180,7 @@ export type Fax = {
      */
     office_id: string | null;
     /**
-     * The number it went to, `+1` and ten digits; for a fax received, your number it came to.
+     * The number it went to, in E.164; for a fax received, your number it came to.
      */
     to_number: string | null;
     /**
@@ -204,9 +208,9 @@ export type Fax = {
      */
     retry_at: string | null;
     /**
-     * Why its last try failed: `no_answer`, `busy`, `call_dropped`, `declined`, `not_a_fax_number`, or `ours` for a failure on XipFax’s side. Null where none failed. An open set.
+     * Why its last try failed: `no_answer`, `busy`, `call_dropped`, `declined`, `not_a_fax_number`, `account_sending_stopped` once your account can’t send faxes, or `ours` for a failure on XipFax’s side. Null where none failed. An open set.
      */
-    failure: 'no_answer' | 'busy' | 'call_dropped' | 'declined' | 'not_a_fax_number' | 'ours' | null;
+    failure: 'no_answer' | 'busy' | 'call_dropped' | 'declined' | 'not_a_fax_number' | 'account_sending_stopped' | 'ours' | null;
     /**
      * The time zone its confirmation tells its times in, as the IANA database names it; null for a fax received.
      */
@@ -249,7 +253,7 @@ export type Sent = {
      */
     paid_by: 'plan' | 'card' | null;
     /**
-     * Where the fax waits for you, where it isn’t sent: your draft on xipfax.com, once you sign in, where you look it over and send it, paying for it there where you have no plan. Null once it is sent.
+     * Where the fax waits for you, where it isn’t sent: your draft on xipfax.com, once you sign in, where you look it over and send it, paying for it there where you have no plan, or where it doesn’t cover the number. Null once it is sent.
      */
     confirm_url: string | null;
 };
@@ -310,7 +314,7 @@ export type Plan = {
      */
     pages: {
         /**
-         * The pages sent and received this month.
+         * The pages sent and received on the plan this month. A fax paid on its own isn’t counted there.
          */
         used: number;
         /**
@@ -472,7 +476,7 @@ export type NewDocument = {
 
 export type SendDraft = {
     /**
-     * The number to send it to, in the US, its territories or Canada, written as you like, such as `+1 202 555 0143`.
+     * The fax number, with its country code, such as `+44 20 7946 0958`; a number in the US, its territories or Canada needs none.
      */
     fax_number?: string;
     /**
@@ -493,6 +497,17 @@ export type NewWebhookEndpoint = {
      * Where XipFax posts each event: https on its usual port, at an address on the internet, 2,048 characters at most.
      */
     url: string;
+};
+
+export type QuoteBody = {
+    /**
+     * The pages to send, from 1 to 250.
+     */
+    pages: number;
+    /**
+     * The fax number, with its country code, such as `+44 20 7946 0958`; a number in the US, its territories or Canada needs none.
+     */
+    to_number: string;
 };
 
 /**
@@ -588,6 +603,53 @@ export type GetQuoteResponses = {
 };
 
 export type GetQuoteResponse = GetQuoteResponses[keyof GetQuoteResponses];
+
+export type QuoteNumberData = {
+    body: QuoteBody;
+    headers?: {
+        /**
+         * A released version of the API: the day its contract was fixed.
+         */
+        'Xip-Version'?: '2026-11-03';
+    };
+    path?: never;
+    query?: never;
+    url: '/quote';
+};
+
+export type QuoteNumberErrors = {
+    /**
+     * Refused: `parameter_missing`, `parameter_invalid`, `parameter_unknown`, `version_invalid`.
+     */
+    400: ApiError;
+    /**
+     * Refused: `authentication_required`, `authentication_failed`.
+     */
+    401: ApiError;
+    /**
+     * Refused: `insufficient_scope`.
+     */
+    403: ApiError;
+    /**
+     * Refused: `content_too_large`.
+     */
+    413: ApiError;
+    /**
+     * Refused: `number_not_faxed`.
+     */
+    422: ApiError;
+};
+
+export type QuoteNumberError = QuoteNumberErrors[keyof QuoteNumberErrors];
+
+export type QuoteNumberResponses = {
+    /**
+     * The quote.
+     */
+    200: Quote;
+};
+
+export type QuoteNumberResponse = QuoteNumberResponses[keyof QuoteNumberResponses];
 
 export type GetDraftData = {
     body?: never;
@@ -854,7 +916,7 @@ export type SendDraftErrors = {
      */
     413: ApiError;
     /**
-     * Refused: `office_unknown`, `documents_missing`, `fax_too_long`, `account_sending_stopped`, `idempotency_key_reused`.
+     * Refused: `office_unknown`, `number_not_faxed`, `documents_missing`, `fax_too_long`, `account_sending_stopped`, `idempotency_key_reused`.
      */
     422: ApiError;
     /**
