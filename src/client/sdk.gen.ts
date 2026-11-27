@@ -2,7 +2,7 @@
 
 import { client } from './client.gen.js';
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client/index.js';
-import type { AddDocumentData, AddDocumentErrors, AddDocumentResponses, CompleteDocumentData, CompleteDocumentErrors, CompleteDocumentResponses, GetConfirmationData, GetConfirmationErrors, GetConfirmationResponses, GetDraftData, GetDraftErrors, GetDraftResponses, GetFaxData, GetFaxErrors, GetFaxResponses, GetPlanData, GetPlanErrors, GetPlanResponses, GetQuoteData, GetQuoteErrors, GetQuoteResponses, ListFaxesData, ListFaxesErrors, ListFaxesResponses, ListOfficesData, ListOfficesErrors, ListOfficesResponses, RegisterWebhookEndpointData, RegisterWebhookEndpointErrors, RegisterWebhookEndpointResponses, RemoveDocumentData, RemoveDocumentErrors, RemoveDocumentResponses, RemoveWebhookEndpointData, RemoveWebhookEndpointErrors, RemoveWebhookEndpointResponses, SendDraftData, SendDraftErrors, SendDraftResponses } from './types.gen.js';
+import type { AddDocumentData, AddDocumentErrors, AddDocumentResponses, CompleteDocumentData, CompleteDocumentErrors, CompleteDocumentResponses, GetConfirmationData, GetConfirmationErrors, GetConfirmationResponses, GetDraftData, GetDraftErrors, GetDraftResponses, GetFaxData, GetFaxErrors, GetFaxResponses, GetPlanData, GetPlanErrors, GetPlanResponses, GetQuoteData, GetQuoteErrors, GetQuoteResponses, ListFaxesData, ListFaxesErrors, ListFaxesResponses, ListOfficesData, ListOfficesErrors, ListOfficesResponses, QuoteNumberData, QuoteNumberErrors, QuoteNumberResponses, RegisterWebhookEndpointData, RegisterWebhookEndpointErrors, RegisterWebhookEndpointResponses, RemoveDocumentData, RemoveDocumentErrors, RemoveDocumentResponses, RemoveWebhookEndpointData, RemoveWebhookEndpointErrors, RemoveWebhookEndpointResponses, SendDraftData, SendDraftErrors, SendDraftResponses } from './types.gen.js';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -60,7 +60,7 @@ export class XipFaxApi extends HeyApiClient {
     /**
      * Quote a fax
      *
-     * The price of one fax of so many pages, sent without a plan, from XipFax’s price list: what its checkout charges. A fax sent on the plan counts its pages there instead.
+     * The price of one fax of so many pages to a fax number in the US, its territories or Canada, sent without a plan, from XipFax’s price list: what its checkout charges. `POST /quote` gives a fax’s price to the number you name. `plan_covers` says whether the plan covers the number: a fax sent on the plan counts its pages there instead.
      */
     public getQuote<ThrowOnError extends boolean = false>(options: Options<GetQuoteData, ThrowOnError>): RequestResult<GetQuoteResponses, GetQuoteErrors, ThrowOnError> {
         return (options.client ?? this.client).get<GetQuoteResponses, GetQuoteErrors, ThrowOnError>({
@@ -75,6 +75,31 @@ export class XipFaxApi extends HeyApiClient {
                 }],
             url: '/quote',
             ...options
+        });
+    }
+    
+    /**
+     * Quote a fax to a number
+     *
+     * The price of one fax of so many pages to the number you name, sent without a plan, from XipFax’s price list: what its checkout charges. `plan_covers` says whether the plan covers the number: a fax sent on the plan counts its pages there instead. A number XipFax can’t fax is refused `parameter_invalid`, or `number_not_faxed` where XipFax’s price list holds no row for it. A quote changes nothing, so it takes no `Idempotency-Key`.
+     */
+    public quoteNumber<ThrowOnError extends boolean = false>(options: Options<QuoteNumberData, ThrowOnError>): RequestResult<QuoteNumberResponses, QuoteNumberErrors, ThrowOnError> {
+        return (options.client ?? this.client).post<QuoteNumberResponses, QuoteNumberErrors, ThrowOnError>({
+            security: [{
+                    key: 'apiKey',
+                    scheme: 'bearer',
+                    type: 'http'
+                }, {
+                    key: 'appToken',
+                    scheme: 'bearer',
+                    type: 'http'
+                }],
+            url: '/quote',
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
         });
     }
     
@@ -169,7 +194,7 @@ export class XipFaxApi extends HeyApiClient {
     /**
      * Send the draft
      *
-     * Sends the draft to the number or the office you name, as far as you let your credential send without you. Your API key sends it on your plan, its pages counted there; or, where you have no plan, on the card you saved, its price held until the fax ends. An app you connected sends it on your plan alone, and only where you let it send straight away. Otherwise nothing is sent or held, the draft keeps where you named, and the answer gives the link where the fax waits for you on xipfax.com. So does a draft whose cover page is on, which xipfax.com draws there: a send to an office that asks for a cover page marked Confidential turns it on. So do a card its bank refused or asked you to confirm, and a send past the 20 a day your credentials make without you. `paid_by` and `confirm_url` say which. A send refused changes nothing of the draft. Name the draft’s documents as `GET /draft` gives them: a draft whose documents aren’t these, in this order, is refused `draft_changed`, so that nothing you didn’t name is sent.
+     * Sends the draft to the number or the office you name, as far as you let your credential send without you. Your API key sends it on your plan, where it covers the number, its pages counted there; or, where you have no plan, on the card you saved, its price held until the fax ends. An app you connected sends it on your plan alone, where it covers the number, and only where you let it send straight away. Otherwise nothing is sent or held, the draft keeps where you named, and the answer gives the link where the fax waits for you on xipfax.com. So does a draft whose cover page is on, which xipfax.com draws there: a send to an office that asks for a cover page marked Confidential turns it on. So do a card its bank refused or asked you to confirm, and a send past the 20 a day your credentials make without you. `paid_by` and `confirm_url` say which. A send refused changes nothing of the draft. Name the draft’s documents as `GET /draft` gives them: a draft whose documents aren’t these, in this order, is refused `draft_changed`, so that nothing you didn’t name is sent.
      */
     public sendDraft<ThrowOnError extends boolean = false>(options: Options<SendDraftData, ThrowOnError>): RequestResult<SendDraftResponses, SendDraftErrors, ThrowOnError> {
         return (options.client ?? this.client).post<SendDraftResponses, SendDraftErrors, ThrowOnError>({
@@ -236,7 +261,7 @@ export class XipFaxApi extends HeyApiClient {
     /**
      * Read a fax’s confirmation
      *
-     * A delivered fax’s confirmation, by a link that reads it for a few minutes: one page that says who received how many pages, from whom and when, and none of your pages, so you can pass it on. A fax not delivered has none.
+     * A delivered fax’s confirmation, by a link that reads it for a few minutes: one page that says who received how many pages, from whom and when. A fax not delivered has none.
      */
     public getConfirmation<ThrowOnError extends boolean = false>(options: Options<GetConfirmationData, ThrowOnError>): RequestResult<GetConfirmationResponses, GetConfirmationErrors, ThrowOnError> {
         return (options.client ?? this.client).get<GetConfirmationResponses, GetConfirmationErrors, ThrowOnError>({

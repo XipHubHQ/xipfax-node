@@ -24,6 +24,7 @@ const PDF = 'https://example.com/letter.pdf';
 const quote: Quote = {
   pages: 1,
   price: { amount_minor: 100, currency: 'USD' },
+  plan_covers: false,
   price_shown: '$1.00',
   terms: 'The stand-in’s terms.',
   price_list: 'stand-in',
