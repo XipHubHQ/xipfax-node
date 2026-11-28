@@ -1,12 +1,14 @@
 /**
- * The read-back of a publish to npm, which scripts/release.mjs runs once npm publish has succeeded.
- * npm's registry gives a version's integrity only once npm releases the version.
+ * The end of a publish to npm, which scripts/release.mjs runs once npm publish has succeeded: it
+ * signs npm out, then reads the version's integrity back from the registry signed out, as anyone
+ * can read a public package. npm's registry gives a version's integrity only once npm releases it.
  *
  * npm scans each new version before it releases it, which npm puts at "typically around five
  * minutes", and "up to 15 minutes or more, at peak times or depending on a package’s content and
  * size": https://github.blog/changelog/2026-07-28-npm-publish-time-malware-scanning-and-dual-use-metadata/
  * So the read-back reads for as long as release.json's readBack window says, and says, the first
- * time the registry gives no integrity, that npm holds the version and what releases it.
+ * time the registry gives no integrity, that npm holds the version and what releases it. Signing
+ * out first keeps no sign-in live for that long.
  */
 import { readFileSync } from 'node:fs';
 
@@ -61,4 +63,51 @@ export async function readBack({ spec, pinned, window, npm, wait, say }) {
     if (read < reads) await wait(window.everySeconds * 1000);
   }
   return { found: 'none' };
+}
+
+/**
+ * What a publish does once npm publish has succeeded: signs npm out, so that no sign-in stays live
+ * while it reads, then reads the integrity back. Answers `{ ok: true, lines }`, the lines to print,
+ * where npm gives the pinned integrity, and `{ ok: false, why }` where the publish refuses: where
+ * npm logout fails, before any read; where npm gives another integrity; and where it gives none
+ * within the window.
+ */
+export async function signOutThenReadBack({
+  spec,
+  pin,
+  window,
+  registry,
+  account,
+  npm,
+  wait,
+  say,
+}) {
+  const signedOut = npm(['logout'], { stdio: 'inherit' });
+  if (signedOut.status !== 0) {
+    return {
+      ok: false,
+      why: `npm published ${spec}, but npm logout failed, so nothing was read back: sign out with npm logout --registry ${registry}, then read it with npm view ${spec} dist.integrity --registry ${registry}.`,
+    };
+  }
+  const read = await readBack({ spec, pinned: pin.integrity, window, npm, wait, say });
+  if (read.found === 'other') {
+    return {
+      ok: false,
+      why: `${spec} is on npm, and npm reads its integrity as ${read.integrity}, not the pinned ${pin.integrity}. npm is signed out: sign in with npm login --registry ${registry} for anything you then do on npm.`,
+    };
+  }
+  if (read.found === 'none') {
+    return {
+      ok: false,
+      why: `npm published ${spec} and holds it still: its registry gave no integrity for it in about ${window.forMinutes} minutes. npm may be holding it for review after its scan, or have blocked it, which it may tell ${account} of, with a way to appeal. npm is signed out: read it later with npm view ${spec} dist.integrity --registry ${registry}, which needs no sign-in.`,
+    };
+  }
+  return {
+    ok: true,
+    lines: [
+      `Published ${spec} from ${pin.commit}. npm reads its integrity back as pinned:`,
+      `  ${pin.integrity}`,
+      `npm is signed out of ${registry}.`,
+    ],
+  };
 }

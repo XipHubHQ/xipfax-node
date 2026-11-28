@@ -11,15 +11,33 @@ export interface ReadBackWindow {
   everySeconds: number;
 }
 
-/** What npm answered a command: its exit status, and what it printed. */
+/**
+ * What npm answered a command: its exit status, and what it printed, null where it printed to the
+ * terminal.
+ */
 export interface NpmAnswer {
   status: number | null;
-  stdout: string;
+  stdout: string | null;
 }
+
+/**
+ * npm, as release.mjs runs it, on npm's own registry; with `{ stdio: 'inherit' }`, npm prints to the
+ * terminal.
+ */
+export type Npm = (args: string[], options?: { stdio: 'inherit' }) => NpmAnswer;
 
 /** What the read-back found: the pinned integrity, another, or none within the window. */
 export type ReadBackResult =
   { found: 'pinned' } | { found: 'other'; integrity: string } | { found: 'none' };
+
+/** The tarball a publish sends, as its check run pinned it: the commit packed, and its integrity. */
+export interface Pin {
+  commit: string;
+  integrity: string;
+}
+
+/** How a publish ends once npm publish has succeeded: the lines it prints, or why it refuses. */
+export type PublishEnd = { ok: true; lines: string[] } | { ok: false; why: string };
 
 /** The window in a parsed release.json; throws, naming the value, where one isn't positive. */
 export function windowOf(config: unknown): ReadBackWindow;
@@ -32,7 +50,22 @@ export function readBack(options: {
   spec: string;
   pinned: string;
   window: ReadBackWindow;
-  npm: (args: string[]) => NpmAnswer;
+  npm: Npm;
   wait: (ms: number) => Promise<unknown>;
   say: (line: string) => void;
 }): Promise<ReadBackResult>;
+
+/**
+ * Signs npm out of `registry`, then reads the integrity npm's registry gives `spec`, signed out,
+ * within `window`.
+ */
+export function signOutThenReadBack(options: {
+  spec: string;
+  pin: Pin;
+  window: ReadBackWindow;
+  registry: string;
+  account: string;
+  npm: Npm;
+  wait: (ms: number) => Promise<unknown>;
+  say: (line: string) => void;
+}): Promise<PublishEnd>;

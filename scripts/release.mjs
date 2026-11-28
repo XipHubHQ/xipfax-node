@@ -15,12 +15,13 @@
  * An authenticator's code lasts about 30 seconds, so a publish only checks: that this checkout is the
  * pinned commit, unchanged, so that the script running is the one the commit holds; that the kept
  * tarball has the pinned integrity; that npm is signed in as the account that publishes; and that
- * this version isn't on npm yet. It then publishes that tarball at once, reads its integrity back
- * from the registry, and signs npm out. Without a code, npm asks for its second factor itself, as a
- * security key needs: run it in a terminal then. npm holds each new version until its scan of it
- * passes, so the read-back reads for as long as release.json's readBack window says, and says so
- * while it waits (read-back.mjs). A publish reads that window first, and refuses before anything
- * where it can't.
+ * this version isn't on npm yet. It then publishes that tarball at once, signs npm out, and reads
+ * its integrity back from the registry signed out, as anyone can read it. Without a code, npm asks
+ * for its second factor itself, as a security key needs: run it in a terminal then. npm holds each
+ * new version until its scan of it passes, so the read-back reads for as long as release.json's
+ * readBack window says, and says so while it waits (read-back.mjs); signing out first keeps no
+ * sign-in live while it does. A publish reads that window first, and refuses before anything where
+ * it can't.
  *
  * Every npm call names npm's own registry, whatever registry the machine names. The tarball and its
  * pin are kept in the clone's git directory, in xipfax-npm/, which no commit holds and every worktree
@@ -44,7 +45,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { readBack, readWindow } from './read-back.mjs';
+import { readWindow, signOutThenReadBack } from './read-back.mjs';
 
 /** npm's own registry, which every npm call names. */
 const REGISTRY = 'https://registry.npmjs.org/';
@@ -184,7 +185,7 @@ function check(ref) {
   console.log(`Publish it from a checkout of ${commit}: scripts/release.mjs <code>`);
 }
 
-/** Publishes the kept tarball, reads its integrity back, and signs npm out. */
+/** Publishes the kept tarball, signs npm out, and reads its integrity back signed out. */
 async function publish(code) {
   let window;
   try {
@@ -237,33 +238,18 @@ async function publish(code) {
     );
   }
 
-  const read = await readBack({
+  const end = await signOutThenReadBack({
     spec,
-    pinned: pin.integrity,
+    pin,
     window,
+    registry: REGISTRY,
+    account: ACCOUNT,
     npm,
     wait: sleep,
     say: (line) => console.log(line),
   });
-  if (read.found === 'other') {
-    refuse(
-      `${spec} is on npm, and npm reads its integrity as ${read.integrity}, not the pinned ${pin.integrity}. npm stays signed in: sign out with npm logout --registry ${REGISTRY}.`,
-    );
-  }
-  if (read.found === 'none') {
-    refuse(
-      `npm published ${spec} and holds it still: its registry gave no integrity for it in about ${window.forMinutes} minutes. npm may be holding it for review after its scan, or have blocked it, which it may tell ${ACCOUNT} of, with a way to appeal. npm stays signed in: read it with npm view ${spec} dist.integrity --registry ${REGISTRY}, then sign out with npm logout --registry ${REGISTRY}.`,
-    );
-  }
-  const signedOut = npm(['logout'], { stdio: 'inherit' });
-  if (signedOut.status !== 0) {
-    refuse(
-      `${spec} is on npm as pinned, but npm logout failed: sign out with npm logout --registry ${REGISTRY}.`,
-    );
-  }
-  console.log(`Published ${spec} from ${pin.commit}. npm reads its integrity back as pinned:`);
-  console.log(`  ${pin.integrity}`);
-  console.log(`npm is signed out of ${REGISTRY}.`);
+  if (!end.ok) refuse(end.why);
+  for (const line of end.lines) console.log(line);
 }
 
 const [first, second, ...rest] = process.argv.slice(2);
