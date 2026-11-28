@@ -1,6 +1,6 @@
 {
   "name": "@xiphub/xipfax-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "XipFax's API for TypeScript and JavaScript, generated from its OpenAPI document.",
   "keywords": [
     "xipfax",

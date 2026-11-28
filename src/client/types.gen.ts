@@ -469,7 +469,7 @@ export type NewDocument = {
      */
     size_bytes?: number;
     /**
-     * Where XipFax fetches it from: an https link to a public address that answers with the PDF itself, 40 MB at most, within 15 seconds. XipFax follows no redirect.
+     * Where XipFax fetches it from: an https link to a public address that answers with the file itself, 40 MB at most, within 15 seconds. The file is a PDF, or a JPEG or a PNG photo, which XipFax makes into a Letter page. XipFax follows no redirect.
      */
     url?: string;
 };
