@@ -76,7 +76,7 @@ confirmation.
 | `getQuote`                | `GET /quote`                                   | The price of a fax to a number in the US, its territories or Canada, without a plan. |
 | `quoteNumber`             | `POST /quote`                                  | The price of a fax to the number you name, and whether the plan covers it.           |
 | `getDraft`                | `GET /draft`                                   | Your draft, the fax you prepare, its documents in the order it sends them.           |
-| `addDocument`             | `POST /draft/documents`                        | Adds a PDF to the draft, by a link XipFax fetches or by an upload.                   |
+| `addDocument`             | `POST /draft/documents`                        | Adds a document to the draft, by a link XipFax fetches or by an upload.              |
 | `completeDocument`        | `POST /draft/documents/{document_id}/complete` | Reads an uploaded PDF back, its pages counted.                                       |
 | `removeDocument`          | `DELETE /draft/documents/{document_id}`        | Takes a document out of the draft.                                                   |
 | `sendDraft`               | `POST /draft/send`                             | Sends the draft to a number or an office.                                            |
