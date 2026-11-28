@@ -1,0 +1,6 @@
+{
+  "readBack": {
+    "forMinutes": 30,
+    "everySeconds": 15
+  }
+}
